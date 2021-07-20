@@ -19,77 +19,42 @@ def get_primes_list(min_num, max_num):
     return list(primes(max_num))
 
 
-def LLL_real_reduce(bound,xlist,primes):
+def LLL_real_reduce(bound,x_list,primes):
     size = len(primes)
-    large_constant = 10**(6300)
+    large_constant = 10
     approximation_matrix = Matrix(ZZ,generate_lattice_approx(large_constant,primes))
+    print(approximation_matrix)
+    #approximation_matrix = approximation_matrix.transpose()
     #find LLL reduced basis
+    #print(approximation_matrix)
     B = approximation_matrix.LLL()
-    Bn = B.inverse()
-    #print(Bn)
-    #print(B)
+    print(B)
     #gram schmidt approximation
     GS,C = B.gram_schmidt()
+    print(C)
     #print(GS)
     #find c_1
     vy = [0 for _ in range(size)]
     vy[-1] = -math.floor(Decimal(large_constant)*Decimal(math.log(math.sqrt(5))))
     y = vector(ZZ,vy)
-    sig = calculate_sigma(B,y)
-    sigint = mp.nint(sig)
-    #print(z)
+    print(y)
+    #v = y.transpose()
+    sig = calculate_sigma(B,y) 
+    frac = abs(sig.numer()) % (abs(sig.denom()))
+    sig = N(frac / sig.denom())
+    print(sig)
     c_2 = max([((B[0].norm())**2)/((GS[i].norm())**2) for i in range(size)])
     print('c2',c_2)
-    print('b0',B[0].norm())
-    c_1 = (1/c_2)*sigma*B[0].norm()**2
+    print('b0',B[0].norm()**2)
+    c_1 = (1/c_2)*sig*B[0].norm()**2
     print(c_1)
+    test = minimal_vector(approximation_matrix,y)
+    print(test)
     #calculate values needed for Lemma 6
     S,T = calculate_S_and_T(x_list,bound)
     print(T**2 + S)
     if c_1**2 < T**2 + S:
-        raise ValueError("Need to choose larger C")
-    #define constants 
-    #c_3 = 2*(1 + k*abs(b)/abs(a))
-    #c_4 = math.log(min(abs(alpha), abs(alpha)/abs(beta)))
-    #get bound on H
-    #new_bound = (1/c_4)*(math.log(large_constant*c_3) - math.log(math.sqrt(c_1**2 - S) - T))
-    #if new_bound < 0:
-    #    raise ValueError("new bound is a negative number.")
-    #return new_bound
-
-def LLL_real_reduce1(bound,x_list,primes):
-    size = len(primes)
-    large_constant = 10**(1000)
-    approximation_matrix = generate_lattice_approximation_matrix(large_constant,primes)
-    #find LLL reduced basis
-    B = LLL.reduction(IntegerMatrix.from_matrix(approximation_matrix))
-    B_matrix = [[0 for _ in range(B.nrows)] for _ in range(B.ncols)]
-    B.to_matrix(B_matrix)
-    
-    B_cols = get_column_vectors(B_matrix)
-    
-    GS = GSO.Mat(B,flags=GSO.INT_GRAM); _ = GS.update_gso()
-    GSM = GS.G
-    GS_matrix = [[0 for _ in range(GSM.nrows)] for _ in range(GSM.ncols)]
-    GSM.to_matrix(GS_matrix)
-    
-    GS_cols =get_column_vectors(GS_matrix)
-    #print(GS_cols)
-   
-    vy = [0 for _ in range(size)]
-    vy[-1] = -math.floor(Decimal(large_constant)*Decimal(math.log(math.sqrt(5))))
-    c2 = calculate_max_frac_norm_squared(B_cols,GS_cols)
-    sigma = calculate_sigma1(B_matrix,vy)
-    print('sig',sigma)
-    print('norm',calculate_norm_squared(B_cols[0]))
-    print('c2',c2)
-    c1 = sigma*calculate_norm_squared(B_cols[0])/c2
-    print('c1',c1)
-    #calculate values needed for Lemma 6
-    S,T = calculate_S_and_T(x_list,bound)
-    print(T**2 + S)
-    if c1**2 < T**2 + S:
-        raise ValueError("Need to choose larger C")
+    #    raise ValueError("Need to choose larger C")
     #define constants 
     c_3 = 2*(1 + k*abs(b)/abs(a))
     c_4 = math.log(min(abs(alpha), abs(alpha)/abs(beta)))
@@ -98,6 +63,50 @@ def LLL_real_reduce1(bound,x_list,primes):
     if new_bound < 0:
         raise ValueError("new bound is a negative number.")
     return new_bound
+
+def LLL_real_reduce1(bound,x_list,primes):
+    size = len(primes)
+    large_constant = 10**(1000)
+    approximation_matrix = generate_lattice_approximation_matrix(large_constant,primes)
+    approximation_matrix = approximation_matrix.transpose()
+    #find LLL reduced basis
+    B = LLL.reduction(IntegerMatrix.from_matrix(approximation_matrix))
+    LLL.is_reduced(B)
+    #B_matrix = [[0 for _ in range(B.nrows)] for _ in range(B.ncols)]
+    #B.to_matrix(B_matrix)
+    
+    #B_cols = get_column_vectors(B_matrix)
+    
+    #GS = GSO.Mat(B,flags=GSO.INT_GRAM); _ = GS.update_gso()
+    #GSM = GS.G
+    #GS_matrix = [[0 for _ in range(GSM.nrows)] for _ in range(GSM.ncols)]
+    #GSM.to_matrix(GS_matrix)
+    
+    #GS_cols =get_column_vectors(GS_matrix)
+    #print(GS_cols)
+   
+    #vy = [0 for _ in range(size)]
+    #vy[-1] = -math.floor(Decimal(large_constant)*Decimal(math.log(math.sqrt(5))))
+    #c2 = calculate_max_frac_norm_squared(B_cols,GS_cols)
+    #sigma = calculate_sigma1(B_matrix,vy)
+    #print('sig',sigma)
+    #print('norm',calculate_norm_squared(B_cols[0]))
+    #print('c2',c2)
+    #c1 = sigma*calculate_norm_squared(B_cols[0])/c2
+    #print('c1',c1)
+    #calculate values needed for Lemma 6
+    #S,T = calculate_S_and_T(x_list,bound)
+    #print(T**2 + S)
+    #if c1**2 < T**2 + S:
+    #    raise ValueError("Need to choose larger C")
+    #define constants 
+    #c_3 = 2*(1 + k*abs(b)/abs(a))
+    #c_4 = math.log(min(abs(alpha), abs(alpha)/abs(beta)))
+    #get bound on H
+    #new_bound = (1/c_4)*(math.log(large_constant*c_3) - math.log(math.sqrt(c_1**2 - S) - T))
+    #if new_bound < 0:
+    #    raise ValueError("new bound is a negative number.")
+    #return new_bound
 
 
 
@@ -114,14 +123,17 @@ def calculate_distance_to_nearest_int(x):
         return ValueError("frac_part is 0.")
     return min(frac_part, mp.fsub(1, frac_part))
 
-def find_last_nonzero_index(v):
+def find_last_nonzero_index(v,primes):
     """
     Used in calculating sigma.
-    """
+    """ 
     last_index = math.inf
-    for i in range(len(v)):
-        if v[-(i + 1)] != 0:
-            return len(v) - (i + 1)
+    for i in range(len(primes)):
+        test = v[-(i + 1)]
+        frac = abs(test.numer()) % (abs(test.denom()))
+        t = N(frac / test.denom())
+        if t != 0:
+            return len(primes) - (i + 1)
     raise ValueError("Zero vector passed in.")
     
 def calculate_sigma1(matrix, v):
@@ -151,11 +163,11 @@ def calculate_sigma(matrix, v):
     print('z',z)
 
     # STEP 2: Find the largest index such that the entry is non-zero
-    last_index = find_last_nonzero_index(z)
+    last_index = find_last_nonzero_index(z,primes)
 
     # STEP 3: Calculate the distance to the nearest integer
     # TODO: Fix floating point errors.
-    return z[last_index] #calculate_distance_to_nearest_int(z[last_index])
+    return z[last_index]#calculate_distance_to_nearest_int(z[last_index])
 
 def generate_lattice_approx(large_constant,primes):
     """
@@ -169,6 +181,9 @@ def generate_lattice_approx(large_constant,primes):
     # Create the row that represents the approximation of the linear form
     row_approx = []
     for i in range(len(primes)):
+        #if i == len(primes)-1:
+         #   row_approx.append(-math.floor(Fraction(large_constant) * Fraction(math.log(primes[i]))))
+        #else:
         row_approx.append(math.floor(Fraction(large_constant) * Fraction(math.log(primes[i]))))
     row_approx = np.reshape(row_approx,(size,1))
     print(np.shape(approximation_matrix))
@@ -283,7 +298,7 @@ if __name__ == "__main__":
     c = constants.calculate_constants()
     nbound = c['n1_bound']
     Z_list = c['Z_bounds']
-    new_bound = LLL_real_reduce1(nbound,Z_list,primes)
+    new_bound = LLL_real_reduce(nbound,Z_list,primes)
     print(new_bound)
     print("Handling n1 = ... = nk case...")
     print("Done.")
