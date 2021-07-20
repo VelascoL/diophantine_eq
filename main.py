@@ -10,30 +10,43 @@ import numpy as np
 from sage.all import *
 from fpylll import IntegerMatrix, GSO, LLL
 from sage.rings.number_field.S_unit_solver import minimal_vector
+from constants1 import Constants
+from fractions import Fraction
+from decimal import Decimal
+
+def get_primes_list(min_num, max_num):
+    return list(primes(max_num))
+
 
 def LLL_real_reduce(bound,x_list):
-    large_constant = 2
-    adjusted_bound = int(math.log10(bound)) + 1
-    approximation_matrix = Matrix(ZZ,generate_lattice_approx(adjusted_bound,x_list))
+    size = len(x_list)
+    large_constant = 10
+    print(bound)
+    #adjusted_bound = int(math.log10(bound)) + 1
+    approximation_matrix = Matrix(ZZ,generate_lattice_approx(large_constant,x_list))
+    print(approximation_matrix)
     #find LLL reduced basis
     L = approximation_matrix.LLL()
     #gram schmidt approximation
     c,GS = L.gram_schmidt()
     #find c_1
-    vy = [0 for _ in range(adjusted_bound+1)]
-    vy[-1] = -math.floor(large_constant * x_list[0])
-    vy = vector(ZZ,vy)
-    c_1 = minimal_vector(approximation_matrix,vy)
+    vy = [0 for _ in range(size)]
+    vy[-1] = -math.floor(Fraction(large_constant) * Fraction(x_list[0]))
+    #print(vy)
+    y = vector(ZZ,vy)
+    c_1 = minimal_vector(approximation_matrix,y)
+    print(c_1)
     #calculate values needed for Lemma 6
-    S,T = calculate_S_and_T(x_list)
-    if c_1**2 < T**2 + S:
+    S,T = calculate_S_and_T(x_list,bound)
+    print(T**2 + S)
+    if c_1**2 < TS:
         raise ValueError("Need to choose larger C")
     #define constants 
     c_3 = 2*(1 + k*abs(b)/abs(a))
     c_4 = math.log(min(abs(alpha), abs(alpha)/abs(beta)))
     #get bound on H
     new_bound = (1/c_4)*(math.log(large_constant*c_3) - math.log(math.sqrt(c_1**2 - S) - T))
-    if new_boud < 0:
+    if new_bound < 0:
         raise ValueError("new bound is a negative number.")
     return new_bound
 
@@ -75,7 +88,7 @@ def calculate_sigma(matrix, v):
     # TODO: Fix floating point errors.
     return calculate_distance_to_nearest_int(z[last_index])
 
-def generate_lattice_approx(adjusted_bound,x_list):
+def generate_lattice_approx(large_constant,x_list):
     """
     Generates the lattice approximation matrix not using fyplll
     """
@@ -87,12 +100,13 @@ def generate_lattice_approx(adjusted_bound,x_list):
     # Create the row that represents the approximation of the linear form
     row_approx = []
     for i in range(len(x_list)):
-        row_approx.append(round(adjusted_bound * x_list[i]))
-    row_approx = np.reshape(row_approx,(1,5))
+        row_approx.append(math.floor(Fraction(large_constant) * Fraction(x_list[i])))
+    row_approx = np.reshape(row_approx,(1,size))
     approximation_matrix = np.concatenate((approximation_matrix, row_approx),axis = 0)
+    print(np.shape(approximation_matrix))
     return approximation_matrix
 
-def calculate_S_and_T(x_list):
+def calculate_S_and_T(x_list,c20):
     """
     Calculates S and T and returns it as a tuple (S, T)
     """
@@ -182,18 +196,27 @@ def generate_lattice_approximation_matrix(adjusted_bound, x_list):
     return approximation_matrix
 
 if __name__ == "__main__":
-    alpha = (1 + math.sqrt(5))/2
-    beta = (1 - math.sqrt(5))/2
-    a = 1
-    b = 1
+    constants = Constants(
+        a = 1,
+        b = 1,
+        A = 1,
+        B = 1,
+        delta = 5,
+        alpha = (1 + sqrt(5))/2,
+        beta = (1 - sqrt(5))/2,
+        num_terms = 2,
+        w = 1,
+        primes = [2,3,5,7]
+    )
 
-    print("Calculating constants...")
-    constants = calculate_constants(alpha, beta, a, b)
-    print(constants)
-    print("Done.")
-
+    c = constants.calculate_constants()
+    nbound = c['n1_bound']
+    Z_list = c['Z_bounds']
+    new_bound = LLL_real_reduce(nbound,Z_list)
+    print(new_bound)
     print("Handling n1 = ... = nk case...")
     print("Done.")
 
-    print("Performing first reduction case...")
-    LLL_real_reduce(100, [1, 2, 3])
+    #print("Performing first reduction case...")
+    #LLL_real_reduce(100, [1, 2, 3])
+    
