@@ -18,28 +18,28 @@ def get_primes_list(min_num, max_num):
     return list(primes(max_num))
 
 
-def LLL_real_reduce(bound,x_list):
-    size = len(x_list)
+def LLL_real_reduce(bound,xlist,primes):
+    size = len(primes)
     large_constant = 10
     print(bound)
     #adjusted_bound = int(math.log10(bound)) + 1
-    approximation_matrix = Matrix(ZZ,generate_lattice_approx(large_constant,x_list))
+    approximation_matrix = Matrix(ZZ,generate_lattice_approx(large_constant,primes))
     print(approximation_matrix)
     #find LLL reduced basis
-    L = approximation_matrix.LLL()
+    B = approximation_matrix.LLL()
     #gram schmidt approximation
-    c,GS = L.gram_schmidt()
+    c,GS = B.gram_schmidt()
     #find c_1
     vy = [0 for _ in range(size)]
-    vy[-1] = -math.floor(Fraction(large_constant) * Fraction(x_list[0]))
-    #print(vy)
+    vy[-1] = -math.floor(Fraction(large_constant) * Fraction(math.log(sqrt(5))))
     y = vector(ZZ,vy)
+    print(y)
     c_1 = minimal_vector(approximation_matrix,y)
     print(c_1)
     #calculate values needed for Lemma 6
-    S,T = calculate_S_and_T(x_list,bound)
+    S,T = calculate_S_and_T(primes,bound)
     print(T**2 + S)
-    if c_1**2 < TS:
+    if c_1**2 < T**2 + S:
         raise ValueError("Need to choose larger C")
     #define constants 
     c_3 = 2*(1 + k*abs(b)/abs(a))
@@ -49,6 +49,8 @@ def LLL_real_reduce(bound,x_list):
     if new_bound < 0:
         raise ValueError("new bound is a negative number.")
     return new_bound
+
+
 
 def LLL_padic_reduce(test):
     return
@@ -88,19 +90,19 @@ def calculate_sigma(matrix, v):
     # TODO: Fix floating point errors.
     return calculate_distance_to_nearest_int(z[last_index])
 
-def generate_lattice_approx(large_constant,x_list):
+def generate_lattice_approx(large_constant,primes):
     """
     Generates the lattice approximation matrix not using fyplll
     """
-    size = len(x_list)
+    size = len(primes)
     
     approximation_matrix = np.identity(size-1)
     # Append an empty column to the identity matrix
     approximation_matrix = np.concatenate((approximation_matrix,np.zeros((size-1,1))),axis = 1)
     # Create the row that represents the approximation of the linear form
     row_approx = []
-    for i in range(len(x_list)):
-        row_approx.append(math.floor(Fraction(large_constant) * Fraction(x_list[i])))
+    for i in range(len(primes)):
+        row_approx.append(math.floor(Fraction(large_constant) * Fraction(math.log(primes[i]))))
     row_approx = np.reshape(row_approx,(1,size))
     approximation_matrix = np.concatenate((approximation_matrix, row_approx),axis = 0)
     print(np.shape(approximation_matrix))
@@ -114,7 +116,7 @@ def calculate_S_and_T(x_list,c20):
     S = sum([x ** 2 for x in x_list])
     
     # STEP 2: Calculate T
-    T = ((sum(x_list) + c20)/2) ** 2
+    T = ((sum(x_list) + c20)/2)
     
     return (S, T)
 
@@ -209,10 +211,11 @@ if __name__ == "__main__":
         primes = [2,3,5,7]
     )
 
+    primes = [2,3,5,7]
     c = constants.calculate_constants()
     nbound = c['n1_bound']
     Z_list = c['Z_bounds']
-    new_bound = LLL_real_reduce(nbound,Z_list)
+    new_bound = LLL_real_reduce(nbound,Z_list,primes)
     print(new_bound)
     print("Handling n1 = ... = nk case...")
     print("Done.")
