@@ -8,11 +8,11 @@ under some mild technical restrictions.
 import math
 import numpy as np
 from sage.all import *
-from fpylll import IntegerMatrix, GSO, LLL
 from sage.rings.number_field.S_unit_solver import minimal_vector
 from constants1 import Constants
 from fractions import Fraction
 from decimal import Decimal
+import mpmath as mp
 
 def get_primes_list(min_num, max_num):
     return list(primes(max_num))
@@ -20,21 +20,26 @@ def get_primes_list(min_num, max_num):
 
 def LLL_real_reduce(bound,xlist,primes):
     size = len(primes)
-    large_constant = 10
-    print(bound)
-    #adjusted_bound = int(math.log10(bound)) + 1
+    large_constant = 10**(6300)
     approximation_matrix = Matrix(ZZ,generate_lattice_approx(large_constant,primes))
-    print(approximation_matrix)
     #find LLL reduced basis
+    #print(approximation_matrix)
     B = approximation_matrix.LLL()
+    #print(B)
     #gram schmidt approximation
-    c,GS = B.gram_schmidt()
+    GS,C = B.gram_schmidt()
+    #print(GS)
     #find c_1
     vy = [0 for _ in range(size)]
-    vy[-1] = -math.floor(Fraction(large_constant) * Fraction(math.log(sqrt(5))))
+    vy[-1] = -math.floor(Decimal(large_constant) * Decimal(math.log(sqrt(5))))
     y = vector(ZZ,vy)
-    print(y)
-    c_1 = minimal_vector(approximation_matrix,y)
+    sig = calculate_sigma(B,y)
+    print('sig',sig)
+    #print(z)
+    c_2 = max([((B[0].norm())**2)/((GS[i].norm())**2) for i in range(size)])
+    print('c2',c_2)
+    print('b0',B[0].norm())
+    c_1 = (1/c_2)*sig*B[0].norm()**2
     print(c_1)
     #calculate values needed for Lemma 6
     S,T = calculate_S_and_T(primes,bound)
@@ -59,11 +64,11 @@ def calculate_distance_to_nearest_int(x):
     """
     Used in calculating sigma.
     """
-    y = abs(x)
-    frac_part = y - int(y)
+    y = mp.fabs(x)
+    frac_part = mp.fsub(y, mp.nint(y))
     if frac_part == 0:
         return ValueError("frac_part is 0.")
-    return min(frac_part, 1 - frac_part)
+    return min(frac_part, mp.fsub(1, frac_part))
 
 def find_last_nonzero_index(v):
     """
@@ -80,8 +85,8 @@ def calculate_sigma(matrix, v):
     Calculate sigma as defined in the paper.
     """
     # STEP 1: Calculate the vector z
-    np_inverted_matrix = np.linalg.inv(np.array(matrix))
-    z = np.dot(np_inverted_matrix, v)
+    inverted_matrix = matrix.inverse()
+    z = inverted_matrix*v
 
     # STEP 2: Find the largest index such that the entry is non-zero
     last_index = find_last_nonzero_index(z)
@@ -208,10 +213,10 @@ if __name__ == "__main__":
         beta = (1 - sqrt(5))/2,
         num_terms = 2,
         w = 1,
-        primes = [2,3,5,7]
+        primes = [2,3,5,7,11,13,17,19]
     )
 
-    primes = [2,3,5,7]
+    primes = [2,3,5,7,11,13,17,19]
     c = constants.calculate_constants()
     nbound = c['n1_bound']
     Z_list = c['Z_bounds']
