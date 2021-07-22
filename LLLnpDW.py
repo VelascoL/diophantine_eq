@@ -112,7 +112,6 @@ from numpy import linalg as la
 
 
 def initial(basis):
-    basis = Matrix(ZZ,basis)
     D = []
     D.append(1)
     casis = np.zeros((np.shape(basis)))
@@ -126,18 +125,20 @@ def initial(basis):
             casis[:,i] = (D[j+1]*casis.column(i) - Lambda[i][j]*casis.column(j))/D[j]
             print(casis)
         D.append((casis.column(i).dot_product(casis.column(i)))/D[i])
-    print(D)
+    print('D',D)
     D = vector(ZZ,D)
     Lambda = Matrix(ZZ,Lambda)
     return Lambda,D
 
 def prod_A(k,l,basis,Lambda,D):
     if 2*abs(Lambda[k-1,l-1]) > D[l]:
-        r = np.rint(Lambda[k-1,l-1]/D[l])
+        r = (Lambda[k-1,l-1]/D[l]).round()
+        print('r',r)
         basis[:,k-1] = basis[:,k-1] - r*basis[:,l-1]
         for j in range(0,l-1):
             Lambda[k-1,j] = Lambda[k-1,j] - r*Lambda[l-1,j]
         Lambda[k-1,l-1] = Lambda[k-1,l-1] - r*D[l]
+    print('a',Lambda)
     return k,l,basis,Lambda,D
         
 def prod_B(k,basis,Lambda,D):
@@ -147,7 +148,7 @@ def prod_B(k,basis,Lambda,D):
     for i in range(k,np.shape(basis)[0]):
         t = Lambda[i,k-2]
         s = (Lambda[i,k-2]*Lambda[k-1,k-2] + Lambda[i,k-1]*D[k-2])/D[k-1]
-        #print(s.is_integer())
+        print(s.is_integer())
         Lambda[i,k-2] = (Lambda[i,k-2]*Lambda[k-1,k-2] + Lambda[i,k-1]*D[k-2])/D[k-1]
         Lambda[i,k-1] = (t*D[k] - Lambda[i,k-1]*Lambda[k-1,k-2])/D[k-1]
     D[k-1] = (D[k-2]*D[k] + Lambda[k-1,k-2]**2)/D[k-1]
@@ -181,7 +182,7 @@ def main(basis):
 if __name__ == "__main__":
     large_constant = 10**(10)
     primes = [2,3,5]
-    basis = generate_lattice(large_constant,primes)
+    basis = Matrix(ZZ,generate_lattice(large_constant,primes))
     print(main(basis))
 
 
