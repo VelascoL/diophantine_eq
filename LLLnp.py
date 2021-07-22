@@ -13,7 +13,7 @@ from constants1 import Constants
 from fractions import Fraction
 from decimal import Decimal
 import mpmath as mp
-from fpylll import *
+from sage.modules.misc import gram_schmidt
 
 def generate_lattice_approx(large_constant,primes):
     """
@@ -43,7 +43,20 @@ def generate_lattice(large_constant, eta_list):
     lattice = np.concatenate((lattice, np.zeros((size-1,1))),axis=1)
     row = []
     for i in range(len(primes)):
-        row.append(math.floor(large_constant * math.log(eta_list[i])))
+        row.append(math.floor(Fraction((large_constant)) * Fraction(math.log(eta_list[i]))))
+    row = np.reshape(row,(1,size))
+    print(row)
+    lattice = np.concatenate((lattice,row),axis=0)
+    print(lattice[2])
+    return lattice
+
+def generate_lattice1(eta_list):
+    size = len(eta_list)
+    lattice = np.identity(size-1)
+    lattice = np.concatenate((lattice, np.zeros((size-1,1))),axis=1)
+    row = []
+    for i in range(len(eta_list)):
+        row.append(eta_list[i])
     row = np.reshape(row,(1,size))
     lattice = np.concatenate((lattice,row),axis=0)
     return lattice
@@ -128,14 +141,18 @@ def main(lattice):
             reduction(orthobasis,basis)
             lovasz(orthobasis,basis)
         print('LLL Reduced Basis:\n', basis)
+    return basis
+
 
 if __name__ == "__main__":
     large_constant = 10**(10)
     primes = [2,3,5]
-    basis = generate_lattice(large_constant,primes)
+    eta_list = [31006,9870,3142,1000]
+    basis = generate_lattice1(eta_list)
     print(basis)
     b = basis.tolist()
-    main(str(b))
+    red = main(str(b))
+   
 
 
 
