@@ -23,7 +23,7 @@ def generate_lattice_approx(large_constant,primes):
     
     approximation_matrix = np.identity(size-1)
     # Append an empty column to the identity matrix
-    approximation_matrix = np.concatenate((approximation_matrix,np.zeros((1,size-1))),axis = 0)
+    approximation_matrix = np.concatenate((approximation_matrix,np.zeros((size-1,1))),axis = 1)
     # Create the row that represents the approximation of the linear form
     row_approx = []
     for i in range(len(primes)):
@@ -31,11 +31,24 @@ def generate_lattice_approx(large_constant,primes):
          #   row_approx.append(-math.floor(Fraction(large_constant) * Fraction(math.log(primes[i]))))
         #else:
         row_approx.append(math.floor(Fraction(large_constant) * Fraction(math.log(primes[i]))))
-    row_approx = np.reshape(row_approx,(size,1))
+    row_approx = np.reshape(row_approx,(1,size))
     print(np.shape(approximation_matrix))
     print(np.shape(row_approx), np.shape(approximation_matrix))
-    approximation_matrix = np.concatenate((approximation_matrix, row_approx),axis = 1)
+    approximation_matrix = np.concatenate((approximation_matrix, row_approx),axis = 0)
     return approximation_matrix
+
+def generate_lattice(large_constant, eta_list):
+    size = len(eta_list)
+    lattice = np.identity(size-1)
+    lattice = np.concatenate((lattice, np.zeros((size-1,1))),axis=1)
+    row = []
+    for i in range(len(primes)):
+        row.append(math.floor(large_constant * math.log(eta_list[i])))
+    row = np.reshape(row,(1,size))
+    lattice = np.concatenate((lattice,row),axis=0)
+    return lattice
+    
+                   
 
 
 
@@ -61,31 +74,31 @@ def proj(u, v):
 
 def gram_schmidt(orthobasis,basis): 
     '''Computes Gram Schmidt orthoganalization (without normalization) of a basis.'''
-    orthobasis[0] = basis[0]
-    for i in range(1, basis.shape[1]):  # Loop through dimension of basis.
-        orthobasis[i] = basis[i]
+    orthobasis[:,0] = basis[:,0]
+    for i in range(1, np.shape(basis)[0]):  # Loop through dimension of basis.
+        orthobasis[:,i] = basis[:,i]
         for j in range(0, i):
-            orthobasis[i] -= proj(orthobasis[j], basis[i])
+            orthobasis[:,i] -= proj(orthobasis[:,j], basis[:,i])
     return orthobasis
 
 def reduction(orthobasis,basis):
     '''Performs length reduction on a basis.'''
     total_reduction = 0 # Track the total amount by which the working vector is reduced.
     for j in range(k-1, -1, -1):   # j loop. Loop down from k-1 to 0.
-        m = round(projection_scale(orthobasis[j], basis[k]))
-        total_reduction += np.dot(m, basis[j])[0]
-        basis[k] -= np.dot(m, basis[j]) # Reduce the working vector by multiples of preceding vectors.
+        m = round(projection_scale(orthobasis[:,j], basis[:,k]))
+        total_reduction += np.dot(m, basis[:,j])[0]
+        basis[:,k] -= np.dot(m, basis[:,j]) # Reduce the working vector by multiples of preceding vectors.
     if total_reduction > 0:
         gram_schmidt(orthobasis,basis) # Recompute Gram-Scmidt if the working vector has been reduced. 
 
 def lovasz(orthobasis,basis):
     global k
     '''Checks the Lovasz condition for a basis. Either swaps adjacent basis vectors and recomputes Gram-Scmidt or increments the working index.'''
-    c = DELTA - projection_scale(orthobasis[k-1], basis[k])**2
-    if la.norm(orthobasis[k])**2 >= np.dot(c, la.norm(orthobasis[k-1]**2)): # Check the Lovasz condition.
+    c = DELTA - projection_scale(orthobasis[:,k-1], basis[:,k])**2
+    if la.norm(orthobasis[:,k])**2 >= np.dot(c, la.norm(orthobasis[:,k-1]**2)): # Check the Lovasz condition.
         k += 1  # Increment k if the condition is met.
     else: 
-        basis[[k, k-1]] = basis[[k-1, k]] # If the condition is not met, swap the working vector and the immediately preceding basis vector.
+        basis[:,[k, k-1]] = basis[:,[k-1, k]] # If the condition is not met, swap the working vector and the immediately preceding basis vector.
         gram_schmidt(orthobasis,basis) # Recompute Gram-Schmidt if swap
         k = max([k-1, 1])
 
@@ -99,7 +112,7 @@ def main(lattice):
     if x in ['Y', 'y']:
         gram_schmidt(orthobasis,basis)
         steps = 0
-        while k <= basis.shape[1] - 1:
+        while k <= np.shape(basis)[0] - 1:
             reduction(orthobasis,basis)
             steps += 1
             print('Step ', steps,'. After the reduction step, the basis is\n', basis)
@@ -111,18 +124,17 @@ def main(lattice):
         print('LLL Reduced Basis:\n', basis)
     else:
         gram_schmidt(orthobasis, basis)
-        while k<= basis.shape[1] - 1:
+        while k<= np.shape(basis)[0] - 1:
             reduction(orthobasis,basis)
             lovasz(orthobasis,basis)
         print('LLL Reduced Basis:\n', basis)
 
 if __name__ == "__main__":
-    large_constant = 10
-    primes = [2,3,5,7]
-    basis = generate_lattice_approx(large_constant,primes)
+    large_constant = 10**(10)
+    primes = [2,3,5]
+    basis = generate_lattice(large_constant,primes)
     print(basis)
     b = basis.tolist()
-    
     main(str(b))
 
 
