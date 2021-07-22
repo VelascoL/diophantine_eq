@@ -127,12 +127,11 @@ def initial(basis):
 
 def prod_A(k,l,basis,Lambda,D):
     if 2*abs(Lambda[k-1,l-1]) > D[l]:
-        print('doing prod A')
         r = np.rint(Lambda[k-1,l-1]/D[l])
         print("r",r)
         print(D[l])
         basis[:,k-1] = basis[:,k-1] - r*basis[:,l-1]
-        for j in range(0,l-2):
+        for j in range(0,l-1):
             Lambda[k-1,j-1] = Lambda[k-1,j-1] - r*Lambda[l-1,j-1]
         Lambda[k-1,l-1] = Lambda[k-1,l-1] - r*D[l]
     #print("LA",Lambda)
@@ -156,18 +155,19 @@ def main(basis):
     print('D', D)
     #print(np.shape(basis)[0])
     k=2
-    while k < np.shape(basis)[0]: 
+    while k <= np.shape(basis)[0]: 
         l = k-1
+        print('doing prod A')
         k,l,basis,Lambda,D = prod_A(k,l,basis,Lambda,D)
-        if 4*D[k-2]*D[k] < (3*D[k-1]**2 - 4*Lambda[k-1][k-2]**2):
+        if 4*D[k-2]*D[k] < (3*D[k-1]**2 - 4*Lambda[k-1,k-2]**2):
             print('doing prod B')
             k,basis,Lambda,D = prod_B(k,basis,Lambda,D)
             if k > 2:
                 k = k-1
         else:
-            print('doing the other thing')
+            print('doing the other thing',k)
             for l in range(k-2,1):
-                print(l)
+                print('doing prod A')
                 k,l,basis,Lambda,D = prod_A(k,l,basis,Lambda,D)
             k = k + 1
     return basis
