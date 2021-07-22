@@ -33,7 +33,7 @@ def generate_lattice_approx(large_constant,primes):
         #if i == len(primes)-1:
          #   row_approx.append(-math.floor(Fraction(large_constant) * Fraction(math.log(primes[i]))))
         #else:
-        row_approx.append(math.floor(Fraction(large_constant) * Fraction(math.log(primes[i]))))
+        row_approx.append(np.rint(Fraction(large_constant) * Fraction(math.log(primes[i]))))
     row_approx = np.reshape(row_approx,(1,size))
     print(np.shape(approximation_matrix))
     print(np.shape(row_approx), np.shape(approximation_matrix))
@@ -46,7 +46,8 @@ def generate_lattice(large_constant, eta_list):
     lattice = np.concatenate((lattice, np.zeros((size-1,1))),axis=1)
     row = []
     for i in range(len(primes)):
-        row.append(math.floor(large_constant * math.log(eta_list[i])))
+        row.append(math.floor(Fraction(large_constant) * Fraction(math.log(eta_list[i]))))
+    print(row)
     row = np.reshape(row,(1,size))
     lattice = np.concatenate((lattice,row),axis=0)
     return lattice
@@ -86,7 +87,7 @@ def initialize(basis):
     
 
 def get_D(basis):
-    D = np.empty((np.shape(basis)[0]+1,1))
+    D = np.empty((np.shape(basis)[0]+1,1),dtype=np.float64)
     ortho = basis.copy()
     GS = gram_schmidt(basis)[0]  
     #print(GS)
@@ -111,30 +112,32 @@ from numpy import linalg as la
 
 
 def initial(basis):
-    D = np.empty((np.shape(basis)[0]+1,1))
-    D[0] = 1
-    casis = np.empty((np.shape(basis)))
-    Lambda = np.empty((np.shape(basis)))
-    Lambda[:] = np.nan
+    basis = Matrix(ZZ,basis)
+    D = []
+    D.append(1)
+    casis = np.zeros((np.shape(basis)))
+    casis = Matrix(ZZ,casis)
+    Lambda = np.zeros((np.shape(basis)))
+    Lambda = Matrix(ZZ,Lambda)
     for i in range(0,np.shape(basis)[0]):
         casis[:,i] = basis[:,i]
         for j in range(0,i):
-            print(i,j)
-            Lambda[i][j] = np.dot(basis[:,i],casis[:,j])
-            casis[:,i] = (D[j+1]*casis[:,i] - Lambda[i][j]*casis[:,j])/D[j]
-        D[i+1] = np.dot(casis[:,i],casis[:,i])/D[i]
+            Lambda[i,j] = basis.column(i).dot_product(casis.column(j))
+            casis[:,i] = (D[j+1]*casis.column(i) - Lambda[i][j]*casis.column(j))/D[j]
+            print(casis)
+        D.append((casis.column(i).dot_product(casis.column(i)))/D[i])
+    print(D)
+    D = vector(ZZ,D)
+    Lambda = Matrix(ZZ,Lambda)
     return Lambda,D
 
 def prod_A(k,l,basis,Lambda,D):
     if 2*abs(Lambda[k-1,l-1]) > D[l]:
         r = np.rint(Lambda[k-1,l-1]/D[l])
-        print("r",r)
-        print(D[l])
         basis[:,k-1] = basis[:,k-1] - r*basis[:,l-1]
         for j in range(0,l-1):
-            Lambda[k-1,j-1] = Lambda[k-1,j-1] - r*Lambda[l-1,j-1]
+            Lambda[k-1,j] = Lambda[k-1,j] - r*Lambda[l-1,j]
         Lambda[k-1,l-1] = Lambda[k-1,l-1] - r*D[l]
-    #print("LA",Lambda)
     return k,l,basis,Lambda,D
         
 def prod_B(k,basis,Lambda,D):
@@ -143,32 +146,35 @@ def prod_B(k,basis,Lambda,D):
         Lambda[[k-2,k-1],j] = Lambda[[k-1,k-2],j]
     for i in range(k,np.shape(basis)[0]):
         t = Lambda[i,k-2]
+        s = (Lambda[i,k-2]*Lambda[k-1,k-2] + Lambda[i,k-1]*D[k-2])/D[k-1]
+        #print(s.is_integer())
         Lambda[i,k-2] = (Lambda[i,k-2]*Lambda[k-1,k-2] + Lambda[i,k-1]*D[k-2])/D[k-1]
         Lambda[i,k-1] = (t*D[k] - Lambda[i,k-1]*Lambda[k-1,k-2])/D[k-1]
     D[k-1] = (D[k-2]*D[k] + Lambda[k-1,k-2]**2)/D[k-1]
     return k,basis,Lambda,D
     
 def main(basis):
-    #print(basis)
     Lambda,D = initial(basis)
     print('L',Lambda)
     print('D', D)
-    #print(np.shape(basis)[0])
     k=2
     while k <= np.shape(basis)[0]: 
         l = k-1
         print('doing prod A')
         k,l,basis,Lambda,D = prod_A(k,l,basis,Lambda,D)
+        print(Lambda)
         if 4*D[k-2]*D[k] < (3*D[k-1]**2 - 4*Lambda[k-1,k-2]**2):
-            print('doing prod B')
+            print('doing prod B',k)
             k,basis,Lambda,D = prod_B(k,basis,Lambda,D)
+            print('D',D)
             if k > 2:
                 k = k-1
         else:
             print('doing the other thing',k)
-            for l in range(k-2,1):
+            for l in range(k-2,2):
                 print('doing prod A')
                 k,l,basis,Lambda,D = prod_A(k,l,basis,Lambda,D)
+                #print(Lambda)
             k = k + 1
     return basis
     
@@ -176,7 +182,6 @@ if __name__ == "__main__":
     large_constant = 10**(10)
     primes = [2,3,5]
     basis = generate_lattice(large_constant,primes)
-    print(basis)
     print(main(basis))
 
 
