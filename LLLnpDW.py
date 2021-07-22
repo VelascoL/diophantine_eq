@@ -98,9 +98,7 @@ def get_D(basis):
     print(D)
     return D
 
-"""LLL.py: Implements the LLL Algorithm originally developed by Lenstra, Lenstra, Lovasz in 1982. Python 2.7."""
-__author__ = "Raj Kane"
-__version__ = "Spring 2019"
+#===================================================
 
 import sys
 import json
@@ -128,26 +126,27 @@ def initial(basis):
     return Lambda,D
 
 def prod_A(k,l,basis,Lambda,D):
-    if 2*abs(Lambda[k][l]) > D[l]:
+    if 2*abs(Lambda[k-1,l-1]) > D[l]:
         print('doing prod A')
-        r = np.rint(Lambda[k][l]/D[l])
-        basis[k] = basis[k] - r*basis[l]
-        for j in range(0,l-1):
-            Lambda[k][j] = Lambda[k][j] - r*Lambda[l][j]
-        Lambda[k][l] = Lambda[k][l] - r*D[l]
+        r = np.rint(Lambda[k-1,l-1]/D[l])
+        print("r",r)
+        print(D[l])
+        basis[:,k-1] = basis[:,k-1] - r*basis[:,l-1]
+        for j in range(0,l-2):
+            Lambda[k-1,j-1] = Lambda[k-1,j-1] - r*Lambda[l-1,j-1]
+        Lambda[k-1,l-1] = Lambda[k-1,l-1] - r*D[l]
+    #print("LA",Lambda)
     return k,l,basis,Lambda,D
         
 def prod_B(k,basis,Lambda,D):
-    bk = np.array(basis[:,k])
-    bk1 = np.array(basis[:,k-1])
-    basis[:,[k-1,k]] = basis[:,[k,k-1]]
-    for j in range(k-2):
-        Lambda[[k-1,k],j] = Lambda[[k,k-1],j]
-    for i in range(k+1,np.shape(basis)[0]):
-        t = Lambda[i,k-1]
-        Lambda[i,k-1] = (Lambda[i,k-1]*Lambda[k,k-1] + Lambda[i,k]*D[k-2])/D[k-1]
-        Lambda[i,k] = (t*D[k] - Lambda[i,k]*Lambda[k,k-1])/D[k-1]
-    D[k-1] = (D[k-2]*D[k] + Lambda[k,k-1]**2)/D[k-1]
+    basis[:,[k-2,k-1]] = basis[:,[k-1,k-2]]
+    for j in range(0,k-2):
+        Lambda[[k-2,k-1],j] = Lambda[[k-1,k-2],j]
+    for i in range(k,np.shape(basis)[0]):
+        t = Lambda[i,k-2]
+        Lambda[i,k-2] = (Lambda[i,k-2]*Lambda[k-1,k-2] + Lambda[i,k-1]*D[k-2])/D[k-1]
+        Lambda[i,k-1] = (t*D[k] - Lambda[i,k-1]*Lambda[k-1,k-2])/D[k-1]
+    D[k-1] = (D[k-2]*D[k] + Lambda[k-1,k-2]**2)/D[k-1]
     return k,basis,Lambda,D
     
 def main(basis):
@@ -160,8 +159,7 @@ def main(basis):
     while k < np.shape(basis)[0]: 
         l = k-1
         k,l,basis,Lambda,D = prod_A(k,l,basis,Lambda,D)
-        #print(basis)
-        if 4*D[k-2]*D[k] < (3*D[k-1]**2 - 4*Lambda[k][k-1]**2):
+        if 4*D[k-2]*D[k] < (3*D[k-1]**2 - 4*Lambda[k-1][k-2]**2):
             print('doing prod B')
             k,basis,Lambda,D = prod_B(k,basis,Lambda,D)
             if k > 2:
@@ -171,9 +169,7 @@ def main(basis):
             for l in range(k-2,1):
                 print(l)
                 k,l,basis,Lambda,D = prod_A(k,l,basis,Lambda,D)
-                print(k,basis)
             k = k + 1
-    #print(basis)
     return basis
     
 if __name__ == "__main__":
