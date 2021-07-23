@@ -19,18 +19,17 @@ from LLLnpDW import LLLDW
 def get_primes_list(min_num, max_num):
     return list(primes(max_num))
 
-def generate_lattice(large_constant, eta_list):
-    size = len(eta_list)
-    lattice = np.identity(size-1)
-    lattice = np.concatenate((lattice, np.zeros((size-1,1))),axis=1)
-    row = []
-    for i in range(len(eta_list)):
-        row.append(math.floor(Fraction(large_constant) * Fraction(math.log(eta_list[i]))))
-    print(row)
-    row = np.reshape(row,(1,size))
-    lattice = np.concatenate((lattice,row),axis=0)
-    return lattice
-
+def generate_approximation_matrix(large_constant):
+        n = len(primes)
+        primes_row = [round(large_constant * log(p)) for p in primes]
+        approximation_matrix = []
+        for i in range(n):
+            zero_row = [0] * n
+            zero_row[i] = 1
+            approximation_matrix.append(zero_row)
+        approximation_matrix[n - 1] = primes_row
+        return Matrix(ZZ, approximation_matrix)
+    
 def calculate_norm_squared(v):
     return v.dot_product(v)
 
@@ -73,7 +72,7 @@ def calculate_sigma(basis, v):
     last_index = find_last_nonzero_index(z,primes)
 
     # STEP 3: Calculate the distance to the nearest integer.
-    return calculate_distance_to_nearest_int(z[last_index])
+    return z[last_index]#calculate_distance_to_nearest_int(z[last_index])
 
 def calculate_S_and_T(x_list,c20):
     """
@@ -90,31 +89,33 @@ def calculate_S_and_T(x_list,c20):
 
 def get_bound(bound,x_list,primes):
     size = len(primes)
-    L = Matrix(ZZ,generate_lattice(large_constant,primes))
+    L = generate_approximation_matrix(large_constant)
     B = LLLDW(L)
     print('reduced',B)
     #do gram-schmidt
     GS = B.transpose().gram_schmidt()[0] #tranpose bc sage is weird
     GS = Matrix(QQ,GS)
     GS = GS.transpose()
-    #find c_1
+    #find c_2
     c_2 = calculate_max_frac_norm_squared(B,GS)
     print('c_2',n(c_2))
     vy = [0 for _ in range(size)]
     vy[-1] = -math.floor(Decimal(large_constant)*Decimal(math.log(math.sqrt(5))))
     y = vector(ZZ,vy)
-    print(y)
     sig = calculate_sigma(B,y)
+    frac = abs(sig.numer()) % (abs(sig.denom()))
+    sig = N(frac/sig.denom())
+    sig = min(sig, 1-sig)
     print('sig',sig)
-    #calculate c_2
-    c_1 = (c_2**(-1))*sig*calculate_norm_squared(B.column(0))
+    #calculate c_1
+    c_1 = (1/n(c_2))*1*calculate_norm_squared(B.column(0))
     print('c_1',c_1)
     S,T = calculate_S_and_T(x_list,bound)
     if c_1**2 < T**2 + S:
         print(T**2 + S)
         raise ValueError("Need to choose larger C")
     c_3 = 2*(1 + k*abs(b)/abs(a))
-    c_4 = math.log(min(abs(alpha)/abs(beta), abs(alpha)))
+    c_4 = math.log(min((abs(alpha)/abs(beta), abs(alpha))))
     #get bound on H
     new_bound = (1/c_4)*(math.log(large_constant*c_3) - math.log(math.sqrt(c_1**2 - S) - T))
     if new_bound < 0:
@@ -135,6 +136,11 @@ if __name__ == "__main__":
         w = 1,
         primes = [2,3,5]
     )
+    k = 2
+    b = 1
+    a = 1
+    alpha = (1 + sqrt(5))/2
+    beta = (1 - sqrt(5))/2
     primes = [2,3,5]
     size = len(primes)
     large_constant = 10**(100)
