@@ -116,22 +116,28 @@ def c4(c1,basis):
     b1sq = calculate_norm_squared(b1)
     c4 = (c1**(-1))*b1sq
     return c4
+
+
+    
+def generate_approximation_matrix(large_constant):
+        n = len(primes)
+        primes_row = [round(large_constant * log(p)) for p in primes]
+        approximation_matrix = []
+        for i in range(n):
+            zero_row = [0] * n
+            zero_row[i] = 1
+            approximation_matrix.append(zero_row)
+        approximation_matrix[n - 1] = primes_row
+        return Matrix(ZZ, approximation_matrix)
         
     
 if __name__ == "__main__":
-    large_constant = 10**(100)
+    large_constant = 10**(10)
     primes = [2,3,5]
     size = len(primes)
-    basis = Matrix(ZZ,generate_lattice(large_constant,primes))
-    #print(initial(basis))
+    basis = Matrix(ZZ,generate_approximation_matrix(large_constant))
     red = LLLDW(basis)
-    print(red[:,0])
-    #c_1 = c1(red)
-    #c_4 = c4(c_1,red)
-    #S = 154*2
-    #T = (1 + 154*3)/2
-    #if c_4 >= T**2 + S:
-    #    print('yep')
+    print(red)
     
     
 
