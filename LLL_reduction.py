@@ -66,7 +66,7 @@ def calculate_sigma(basis, v):
     # STEP 1: Calculate the vector z
     inverted_matrix = basis.inverse()
     z = inverted_matrix*v
-    print('z',z)
+    #print('z',z)
 
     # STEP 2: Find the largest index such that the entry is non-zero
     last_index = find_last_nonzero_index(z,primes)
@@ -82,7 +82,9 @@ def calculate_S_and_T(x_list,c20):
     S = sum([x ** 2 for x in x_list])
     
     # STEP 2: Calculate T
-    T = ((sum(x_list) + c20)/2)
+    T = (sum(x_list) + c20)/2
+    
+    print('S',S)
     
     return (S, T)
 
@@ -91,14 +93,14 @@ def get_bound(bound,x_list,primes):
     size = len(primes)
     L = generate_approximation_matrix(large_constant)
     B = LLLDW(L)
-    print('reduced',B)
+    #print('reduced',B)
     #do gram-schmidt
     GS = B.transpose().gram_schmidt()[0] #tranpose bc sage is weird
     GS = Matrix(QQ,GS)
     GS = GS.transpose()
     #find c_2
     c_2 = calculate_max_frac_norm_squared(B,GS)
-    print('c_2',n(c_2))
+    #print('c_2',n(c_2))
     vy = [0 for _ in range(size)]
     vy[-1] = -math.floor(Decimal(large_constant)*Decimal(math.log(math.sqrt(5))))
     y = vector(ZZ,vy)
@@ -106,18 +108,18 @@ def get_bound(bound,x_list,primes):
     frac = abs(sig.numer()) % (abs(sig.denom()))
     sig = N(frac/sig.denom())
     sig = min(sig, 1-sig)
-    print('sig',sig)
     #calculate c_1
     c_1 = (1/n(c_2))*1*calculate_norm_squared(B.column(0))
-    print('c_1',c_1)
+    #print('c_1',c_1)
     S,T = calculate_S_and_T(x_list,bound)
-    if c_1**2 < T**2 + S:
-        print(T**2 + S)
+    print("S",S)
+    if c_1 < T**2 + S:
+        #print(T**2 + S)
         raise ValueError("Need to choose larger C")
     c_3 = 2*(1 + k*abs(b)/abs(a))
     c_4 = math.log(min((abs(alpha)/abs(beta), abs(alpha))))
     #get bound on H
-    new_bound = (1/c_4)*(math.log(large_constant*c_3) - math.log(math.sqrt(c_1**2 - S) - T))
+    new_bound = (1/c_4)*(math.log(large_constant*c_3) - math.log(math.sqrt(c_1 - S) - T))
     if new_bound < 0:
         raise ValueError("new bound is a negative number")
     return new_bound
@@ -136,7 +138,7 @@ if __name__ == "__main__":
         w = 1,
         primes = [2,3,5]
     )
-    k = 2
+    k = 3
     b = 1
     a = 1
     alpha = (1 + sqrt(5))/2
@@ -147,8 +149,12 @@ if __name__ == "__main__":
     c = constants.calculate_constants()
     nbound = c['n1_bound']
     Z_list = c['Z_bounds']
-    new_bound = get_bound(nbound,Z_list,primes)
-    print(new_bound)
+    print(Z_list)
+    
+    diff_bound = get_bound(nbound,Z_list,primes)
+    print(diff_bound)
+    
+    
     print("Handling n1 = ... = nk case...")
     print("Done.")
 
