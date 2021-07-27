@@ -106,7 +106,7 @@ class BoundReduce:
         """
         Calculates an appropriate large constant given a bound.
         """
-        minimum_exponent = math.ceil(math.log(bound, 10) * factor)
+        minimum_exponent = 100#math.ceil(math.log(bound, 10) * factor)
         return ZZ(10 ** minimum_exponent)
 
     def real_reduce(self, bound, large_constant):
@@ -170,12 +170,12 @@ class BoundReduce:
         print('vec',vy)
         # Second, calculate the constants needed.
         sigma = self.calculate_sigma(LLL_matrix, vy, prec)
-        print('sig',sigma)
+        
         c2 = max([LLL_matrix.column(0).norm()**2 / GS_matrix.column(i).norm()**2 for i in range(n)]) 
         # Lastly, calculate the lower-bound.
-        print('b2',LLL_matrix.column(0).norm()**2)
+        
         minimal_vector_bound = (1 / c2) * sigma * LLL_matrix.column(0).norm()**2
-        print('c1',minimal_vector_bound)
+        
         return minimal_vector_bound
 
     def calculate_sigma(self, LLL_matrix, vy, prec=100):
@@ -207,13 +207,13 @@ class BoundReduce:
         Calculates a new bound on (n_1 - n_k), given appropriate values.
         Names of constants correspond to the names defined in the paper.
         """
-        if minimal_vector_bound**2 < T**2 + S:
+        if minimal_vector_bound < T**2 + S:
             raise ValueError("Need to choose larger C")
             
         c3 = RR(2 + 4 * self.constants.num_terms * abs(self.constants.b) / abs(self.constants.a))
         c4 = RR(math.log(min(abs(self.constants.alpha / self.constants.beta), self.constants.alpha)))
         print(log(RR(large_constant) * c3))
-        new_bound = (1 / c4) * (log(RR(large_constant) * c3) - log(sqrt(RR(minimal_vector_bound)**2 - RR(S)) - RR(T)))
+        new_bound = (1 / c4) * (log(RR(large_constant) * c3) - log(sqrt(RR(minimal_vector_bound) - RR(S)) - RR(T)))
         print('bound',new_bound)
         return new_bound
 
