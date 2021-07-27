@@ -6,7 +6,7 @@ Class for reducing upper-bounds on the parameters of our Diophantine equations.
 
 import math
 import logging
-from constants1 import Constants, padic_log, padic_order
+from constants2 import Constants, padic_log, padic_order
 from itertools import combinations
 from sage.all import *
 
@@ -70,22 +70,22 @@ class BoundReduce:
             current_diff_bound = new_diff_bound
 
         # Second, go through the p-adic reduction loop.
-        #current_Z_bounds = self.coefficients['Z_bounds']
-        #while True:
-            #padic_reduction_iterations += 1
-            #logging.info("p-adic Reduction - Iteration %d" % padic_reduction_iterations)
+        current_Z_bounds = self.coefficients['Z_bounds']
+        while True:
+            padic_reduction_iterations += 1
+            logging.info("p-adic Reduction - Iteration %d" % padic_reduction_iterations)
 
-            #new_Z_bounds = self.padic_reduce(math.ceil(current_diff_bound))
-            #logging.info("Current bound on n1: " + str(current_n1_bound))
-            #new_n1_bound = self.update_padic_constants(new_Z_bounds)
-            #logging.info("New bound on n1: " + str(new_n1_bound))
-            #if percentage_change(current_n1_bound, new_n1_bound) < self.threshold:
-             #   logging.info("New bound did not improve in the p-adic step; p-adic reduction process is done.")
-             #   break
+            new_Z_bounds = self.padic_reduce(math.ceil(current_diff_bound))
+            logging.info("Current bound on n1: " + str(current_n1_bound))
+            new_n1_bound = self.update_padic_constants(new_Z_bounds)
+            logging.info("New bound on n1: " + str(new_n1_bound))
+            if percentage_change(current_n1_bound, new_n1_bound) < self.threshold:
+                logging.info("New bound did not improve in the p-adic step; p-adic reduction process is done.")
+                break
 
-            #current_n1_bound = new_n1_bound
+            current_n1_bound = new_n1_bound
 
-        #print(current_n1_bound)
+        print(current_n1_bound)
 
         return self.constants
 
@@ -327,9 +327,9 @@ if __name__ == "__main__":
         alpha = (1 + math.sqrt(5))/2,
         beta = (1 - math.sqrt(5))/2,
         delta = 5,
-        num_terms = 3,
+        num_terms = 2,
         w = 1,
-        primes = [5]
+        primes = [3]
     )
 
     br = BoundReduce(constants_gen, flags={"DEBUG_FLAG": True})
