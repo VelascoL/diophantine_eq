@@ -122,6 +122,21 @@ class Constants:
         Z_bounds = self.calculate_Z_bounds(n1_bound)
         self.constants["Z_bounds"] = Z_bounds
         return
+    
+    def eq_update_constants(self, diff_bound):
+        """
+        Given a new bound on n_1 - n_k, recalculate the bounds on n_1 and z_i.
+        """
+        n1_bound = self.calculate_new_n1_bound(
+                self.constants["C6"],
+                self.constants["c10"],
+                diff_bound
+        )
+        self.constants["eq_n1_bound"] = n1_bound
+
+        Z_bounds = self.calculate_Z_bounds(n1_bound)
+        self.constants["eq_Z_bounds"] = Z_bounds
+        return
 
     def update_padic_constants(self, Z_bounds):
         """
