@@ -108,38 +108,17 @@ class BoundReduce:
         print('initial bound',max(self.coefficients['eq_n1_bound'],max(self.coefficients['eq_Z_bounds'])))
 
         # First, go through the real reduction loop.
-        current_n1_bound = self.coefficients['n1_bound']
-        current_diff_bound = None
-        while True:
-            real_reduction_iterations += 1
-            logging.info("Real Reduction - Iteration %d" % real_reduction_iterations)
-
-            large_constant = self.calculate_large_constant(current_n1_bound, factor)
-            logging.info("Large constant contains %d digits " % large_constant.ndigits())
-
-            # Find a new bound on n_1 - n_k
-            new_diff_bound = self.real_reduce(current_n1_bound, large_constant)
-            logging.info("Current bound on n1: " + str(current_n1_bound))
-            self.update_real_constants(new_diff_bound)
-            logging.info("new diff bound: " + str(new_diff_bound))
-            logging.info("New bound on n1: " + str(self.coefficients["n1_bound"]))
-            logging.info("New bound on zi: " + str(self.coefficients['Z_bounds']))
-
-            if percentage_change(current_n1_bound, self.coefficients["n1_bound"]) < self.threshold:
-                logging.info("New bound did not improve in the real step; real reduction process is done.")
-                factor = factor + 5
-                break
-
-            current_n1_bound = self.coefficients['n1_bound']
-            current_diff_bound = new_diff_bound
+        current_n1_bound = self.coefficients['eq_n1_bound']
+        current_diff_bound = 0
 
         # Second, go through the p-adic reduction loop.
-        current_Z_bounds = self.coefficients['Z_bounds']
+        current_Z_bounds = self.coefficients['eq_Z_bounds']
         while True:
             padic_reduction_iterations += 1
             logging.info("p-adic Reduction - Iteration %d" % padic_reduction_iterations)
-
-            new_Z_bounds = self.padic_reduce(math.ceil(current_diff_bound))
+            
+            new_Z_bounds = self.eq_padic_reduce(math.ceil(current_diff_bound))
+            logging.info("diff bound: " + str(current_diff_bound))
             logging.info("New bound on zi: " + str(new_Z_bounds))
             logging.info("Current bound on n1: " + str(current_n1_bound))
             new_n1_bound = self.update_padic_constants(new_Z_bounds)
@@ -150,7 +129,7 @@ class BoundReduce:
 
             current_n1_bound = new_n1_bound
 
-        print(current_n1_bound)
+        print('n1 bound: '+ str(current_n1_bound))
 
         return self.constants
 
@@ -158,7 +137,7 @@ class BoundReduce:
         """
         Updates the constants given new bounds on n_1 - n_k.
         """
-        self.constants.update_constants(diff_bound)
+        self.constants.eq_update_constants(diff_bound)
         self.coefficients = self.constants.get_coefficients()
         return
 
@@ -337,12 +316,66 @@ class BoundReduce:
                     current_z_bound = max(current_z_bound, z_bound)
             Z_bounds.append(current_z_bound)
         return Z_bounds
+    
+    def eq_padic_reduce(self, diff_bound):
+        """
+        Employs methodology from Pink and Zieglier (2016).
+        """
+        Z_bounds = []
+        for i in range(len(self.constants.primes)):
+            p = self.constants.primes[i]
+            logging.info("Examining the prime %d for the p-adic reduction." % p)
+            r = math.ceil(math.log(self.coefficients["eq_n1_bound"], p))
+            prec = r + self.tries + 10
+            L = Qp(p, prec)
+
+            current_z_bound = -1
+
+            # Pre-computation step (i.e. memoization)
+            alpha, beta = self.calculate_alphabeta(p, prec)
+            alpha_t = self.precompute_t_power(alpha, diff_bound)
+            beta_t = self.precompute_t_power(beta, diff_bound)
+            z0_right_term = L((alpha - beta).norm()).ordp()
+            log_alpha_over_beta = log(alpha / beta)
+
+            # Pre-computations for tau == 1 
+            p_order = log_alpha_over_beta.norm().ordp() / 2
+
+            t_vec = (0,0,0)
+            z0_left_term = self.constants.a * (1 + sum([alpha_t[t] for t in t_vec]))
+            z0 = L(z0_left_term.norm()).ordp() - z0_right_term
+            tau = self.calculate_tau(t_vec, alpha_t, beta_t)
+            print('tau',tau)
+
+            # Unlikely case, and we may assume the p-adic log is injective for our purposes.
+            if tau == 1:
+                new_bound = math.log(self.coefficients["eq_n1_bound"], p) + p_order + z0
+                Z_bounds.append(max(z0 + 3/2, new_bound))
+                print('executing edge case')
+            else:
+                # Remember that zeta is in Q_p, not in the field extension.
+                log_tau = tau.log()
+                zeta = log_tau / log_alpha_over_beta
+                vzeta = zeta.norm().ordp()
+                zeta_list = self.get_expansion(prec, zeta)
+
+                R_max = self.find_Rmax(r, vzeta, zeta_list)
+                if R_max == -1:
+                    print('R does not exist')
+                    m0 = self.find_m0(p, zeta_list)
+                    z_bound = math.log(self.coefficients["n1_bound"] - m0, p) + (alpha / beta).ordp() + z0
+                else:
+                    zeta_inverse = log_alpha_over_beta / log_tau
+                    vzeta_inverse = zeta_inverse.ordp()
+                    z_bound = log_tau.ordp() + R_max + vzeta_inverse
+                current_z_bound = max(current_z_bound, z_bound)
+        return Z_bounds
 
     def cont_fraction_reduce(self):
         return
 
     def precompute_t_power(self, term, diff_bound):
-        return [term ** i for i in range(1, diff_bound + 1)]
+        return [term ** i for i in range(0, diff_bound + 1)]
 
     def calculate_tau(self, t_vec, alpha_t, beta_t):
         numerator = 1 + sum([beta_t[t - 1] for t in t_vec])
@@ -428,7 +461,8 @@ if __name__ == "__main__":
         primes = [3]
     )
 
-    br = BoundReduce(constants_gen, flags={"DEBUG_FLAG": True})
-    #br.reduce(threshold=0.01)
-    br.reduce_eq(threshold = 0.01)
+    br1 = BoundReduce(constants_gen, flags={"DEBUG_FLAG": True})
+    br1.reduce_eq(threshold = 0.01)
+    br2 = BoundReduce(constants_gen, flags={"DEBUG_FLAG": True})
+    br2.reduce(threshold=0.01)
     #br.padic_reduce(3000)
